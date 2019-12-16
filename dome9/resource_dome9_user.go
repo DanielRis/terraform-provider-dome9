@@ -4,9 +4,10 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+
 	"github.com/dome9/dome9-sdk-go/dome9/client"
 	"github.com/dome9/dome9-sdk-go/services/users"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
 func resourceUsers() *schema.Resource {
@@ -41,11 +42,12 @@ func resourceUsers() *schema.Resource {
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeInt},
 			},
-			"is_suspended": {
+			"is_owner": {
 				Type:     schema.TypeBool,
 				Computed: true,
+				Optional: true,
 			},
-			"is_owner": {
+			"is_suspended": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
@@ -190,7 +192,7 @@ func resourceUsersRead(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[INFO] Reading user and settings states: %+v\n", resp)
 	d.SetId(strconv.Itoa(resp.ID))
-	_ = d.Set("email", resp.Name)
+	_ = d.Set("email", resp.Email)
 	_ = d.Set("is_sso_enabled", resp.SsoEnabled)
 	_ = d.Set("is_suspended", resp.IsSuspended)
 	_ = d.Set("is_owner", resp.IsOwner)
@@ -223,11 +225,27 @@ func resourceUsersDelete(d *schema.ResourceData, meta interface{}) error {
 
 func resourceUsersUpdate(d *schema.ResourceData, meta interface{}) error {
 	d9Client := meta.(*Client)
-	log.Printf("[INFO] Updating user ID: %v\n", d.Id())
-	req := expandUsersRequest(d)
+	log.Printf("[INFO] Updating user with ID: %v\n", d.Id())
 
-	if _, err := d9Client.users.Update(d.Id(), req); err != nil {
-		return err
+	if d.HasChange("role_ids") {
+		log.Println("[INFO] Roles has been changed")
+		req := expandUpdateRequest(d)
+		if _, err := d9Client.users.Update(d.Id(), &req); err != nil {
+			return err
+		}
+	}
+
+	if d.HasChange("is_owner") {
+		if d.Get("is_owner").(bool) {
+			if _, err := d9Client.users.SetUserAsOwner(d.Id()); err != nil {
+				return err
+			}
+
+			log.Printf("User with ID %s now is owner", d.Id())
+		} else {
+			// to make the user un owner, we must set another user to be owner, so is_owner filed in the tf state must stay true.
+			_ = d.Set("is_owner", true)
+		}
 	}
 
 	return nil
@@ -240,6 +258,33 @@ func expandUsersRequest(d *schema.ResourceData) users.UserRequest {
 		LastName:   d.Get("last_name").(string),
 		SsoEnabled: d.Get("is_sso_enabled").(bool),
 	}
+}
+
+func expandUpdateRequest(d *schema.ResourceData) users.UserUpdate {
+	return users.UserUpdate{
+		RoleIds: expandRoles(d.Get("role_ids").([]interface{})),
+		// permissions must be passed
+		Permissions: users.Permissions{
+			Access:             []string{},
+			Manage:             []string{},
+			Rulesets:           []string{},
+			Notifications:      []string{},
+			Policies:           []string{},
+			AlertActions:       []string{},
+			Create:             []string{},
+			View:               []string{},
+			CrossAccountAccess: []string{},
+		},
+	}
+}
+
+func expandRoles(generalRoles []interface{}) []int {
+	roles := make([]int, len(generalRoles))
+	for i, role := range generalRoles {
+		roles[i] = role.(int)
+	}
+
+	return roles
 }
 
 func flattenIamSafe(iamSafe users.IamSafe) []interface{} {

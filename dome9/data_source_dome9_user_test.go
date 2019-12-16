@@ -7,6 +7,7 @@ import (
 
 	"github.com/terraform-providers/terraform-provider-dome9/dome9/common/resourcetype"
 	"github.com/terraform-providers/terraform-provider-dome9/dome9/common/testing/method"
+	"github.com/terraform-providers/terraform-provider-dome9/dome9/common/testing/variable"
 )
 
 func TestAccDataSourceUserBasic(t *testing.T) {
@@ -18,7 +19,7 @@ func TestAccDataSourceUserBasic(t *testing.T) {
 		CheckDestroy: testAccCheckUserDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckUsersConfigure(resourceTypeAndName, generatedName),
+				Config: testAccCheckUsersConfigure(resourceTypeAndName, generatedName, variable.UserIsOwner),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrPair(dataSourceTypeAndName, "id", resourceTypeAndName, "id"),
 					resource.TestCheckResourceAttrPair(dataSourceTypeAndName, "email", resourceTypeAndName, "email"),

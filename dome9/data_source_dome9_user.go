@@ -157,7 +157,7 @@ func dataSourceUsersRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(strconv.Itoa(resp.ID))
-	_ = d.Set("email", resp.Name)
+	_ = d.Set("email", resp.Email)
 	_ = d.Set("is_sso_enabled", resp.SsoEnabled)
 	_ = d.Set("is_suspended", resp.IsSuspended)
 	_ = d.Set("is_owner", resp.IsOwner)

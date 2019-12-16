@@ -5,9 +5,10 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/dome9/dome9-sdk-go/services/users"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+
+	"github.com/dome9/dome9-sdk-go/services/users"
 
 	"github.com/terraform-providers/terraform-provider-dome9/dome9/common/resourcetype"
 	"github.com/terraform-providers/terraform-provider-dome9/dome9/common/testing/method"
@@ -17,20 +18,28 @@ import (
 func TestAccResourceUsersBasic(t *testing.T) {
 	var usersResponse users.UserResponse
 	resourceTypeAndName, _, generatedName := method.GenerateRandomSourcesTypeAndName(resourcetype.Users)
-
+	_, _, roleGeneratedName := method.GenerateRandomSourcesTypeAndName(resourcetype.Role)
+	roleResourceHCL := RoleResourceHCL(roleGeneratedName, variable.RoleDescription)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckUserDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckUsersConfigure(resourceTypeAndName, generatedName),
+				Config: testAccCheckUsersConfigure(resourceTypeAndName, generatedName, ""),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckUserExists(resourceTypeAndName, &usersResponse),
 					resource.TestCheckResourceAttr(resourceTypeAndName, "email", composeGenerateEmail(generatedName)),
 					resource.TestCheckResourceAttr(resourceTypeAndName, "first_name", variable.UserFirstName),
 					resource.TestCheckResourceAttr(resourceTypeAndName, "last_name", variable.UserLastName),
 					resource.TestCheckResourceAttr(resourceTypeAndName, "is_sso_enabled", strconv.FormatBool(variable.UserIsSsoEnabled)),
+				),
+			},
+			{
+				Config: testAccCheckUsersConfigure(resourceTypeAndName, generatedName, roleResourceHCL),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckUserExists(resourceTypeAndName, &usersResponse),
+					resource.TestCheckResourceAttr(resourceTypeAndName, "is_owner", strconv.FormatBool(variable.UserUpdateIsOwner)),
 				),
 			},
 		},
@@ -81,8 +90,12 @@ func testAccCheckUserExists(resource string, user *users.UserResponse) resource.
 	}
 }
 
-func testAccCheckUsersConfigure(resourceTypeAndName, generatedName string) string {
+func testAccCheckUsersConfigure(resourceTypeAndName, generatedName, roleHCL string) string {
 	return fmt.Sprintf(`
+
+// role resource hcl
+%s
+
 resource "%s" "%s" {
   email = "%s"
   first_name = "%s"
@@ -94,7 +107,9 @@ data "%s" "%s" {
 	id = "${%s.id}"
 }
 `,
-		// resource variables
+		roleHCL,
+
+		// user resource variables
 		resourcetype.Users,
 		generatedName,
 		composeGenerateEmail(generatedName),

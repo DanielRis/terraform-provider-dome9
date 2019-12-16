@@ -33,6 +33,10 @@ The following arguments are supported:
 * `last_name` - (Required) user last name. 
 * `is_sso_enabled` - (Required) user has enabled SSO sign-on. 
 
+Note: There are two filed that can be updated in user, `is_owner` and `role_ids` that occur in two steps:
+* Create user.
+* Then update the desired field.
+
 ## Attributes Reference
 
 * `id` - user id.
