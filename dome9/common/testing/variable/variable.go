@@ -81,3 +81,10 @@ const (
 	ParentID                     = "" // empty string as parent id creates ou under Dome9 main root ou
 	Dome9RootOuID                = "00000000-0000-0000-0000-000000000000"
 )
+
+// Users resource/data source
+const (
+	UserFirstName    = "first_name_for_test"
+	UserLastName     = "last_name_for_test"
+	UserIsSsoEnabled = false
+)

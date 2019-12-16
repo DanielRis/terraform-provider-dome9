@@ -12,4 +12,5 @@ const (
 	CloudAccountAWSSecurityGroup     = "dome9_aws_security_group"
 	Role                             = "dome9_role"
 	OrganizationalUnit               = "dome9_organizational_unit"
+	Users                            = "dome9_users"
 )
